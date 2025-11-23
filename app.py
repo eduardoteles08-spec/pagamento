@@ -42,7 +42,7 @@ def gerar_pix():
         
         pushpay_api_url = "https://api.pushinpay.com/v1/pix/qrcode" 
         
-        response = requests.post(pushpay_api_url, headers=headers, json=payload)
+        response = requests.post(pushpay_api_url, headers=headers, json=payload, verify=False)
         
         # 5. Captura erros da API PushinPay (como 401, 400, etc.)
         response.raise_for_status() 
