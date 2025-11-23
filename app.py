@@ -40,7 +40,7 @@ def gerar_pix():
             "Content-Type": "application/json"
         }
         
-        pushpay_api_url = "https://api.pushinpay.com.br/api/v1/pix/qrcode" 
+        pushpay_api_url = "https://api.pushinpay.com.br/api/pix/cashIn" 
         
         response = requests.post(pushpay_api_url, headers=headers, json=payload, verify=False)
         
