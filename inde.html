@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Pagar Assinatura com PIX</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Variáveis de Cores (Modo Escuro) */
+        :root {
+            --cor-fundo-principal: #1a1a1a; 
+            --cor-fundo-card: #2c2c2c;
+            --cor-texto-claro: #f0f0f0;
+            --cor-texto-medio: #b0b0b0;
+            --cor-destaque: #e50914; 
+            --cor-botao-hover: #ff2a3a;
+            --cor-borda: #444;
+            --cor-sucesso: #4CAF50;
+            --cor-copiar: #008080; 
+            --cor-copiar-hover: #009999;
+            --cor-observacao: #666666; /* Cinza escuro para observação discreta */
+        }
+
+        /* Estilos Gerais */
+        body {
+            background-color: var(--cor-fundo-principal);
+            font-family: 'Poppins', sans-serif;
+            color: var(--cor-texto-claro);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: url('https://images.unsplash.com/photo-1542204620-3b999d107842?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 420px;
+            padding: 35px;
+            background-color: var(--cor-fundo-card);
+            border-radius: 12px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            color: var(--cor-destaque);
+            margin-bottom: 25px;
+            font-size: 2em;
+            letter-spacing: 1px;
+            border-bottom: 2px solid var(--cor-borda);
+            padding-bottom: 15px;
+        }
+        
+        /* Grupo de Input */
+        .input-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            color: var(--cor-texto-medio);
+        }
+        .input-group label {
+            font-weight: 500;
+        }
+        #valor_input {
+            padding: 10px;
+            border: 1px solid var(--cor-borda);
+            border-radius: 6px;
+            text-align: right;
+            font-size: 1.2em;
+            width: 120px;
+            margin-left: 10px;
+            background-color: #3a3a3a;
+            color: var(--cor-texto-claro);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        #valor_input:focus {
+            border-color: var(--cor-destaque);
+            box-shadow: 0 0 8px rgba(229, 9, 20, 0.6);
+            outline: none;
+        }
+
+        /* Botão Principal */
+        .btn-principal {
+            width: 100%;
+            padding: 14px 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+            background-color: var(--cor-destaque);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 6px 12px rgba(229, 9, 20, 0.4);
+            transition: background-color 0.3s, transform 0.1s, box-shadow 0.3s;
+            letter-spacing: 0.5px;
+        }
+        .btn-principal:hover {
+            background-color: var(--cor-botao-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(229, 9, 20, 0.6);
+        }
+        .btn-principal:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 8px rgba(229, 9, 20, 0.4);
+        }
+
+        /* Resultados */
+        #resultado {
+            margin-top: 35px;
+            padding-top: 25px;
+            border-top: 1px solid var(--cor-borda);
+        }
+        h2 {
+            color: var(--cor-sucesso);
+            margin-bottom: 18px;
+            font-size: 1.6em;
+        }
+        #qrcode-img {
+            max-width: 180px;
+            height: auto;
+            margin: 20px auto;
+            border: 5px solid var(--cor-destaque);
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        p {
+            margin: 18px 0 12px;
+            font-weight: 400;
+            color: var(--cor-texto-medio);
+        }
+
+        /* Estilo da OBSERVAÇÃO SIMPLES */
+        .observacao-simples {
+            color: var(--cor-texto-medio); /* Cor cinza mais discreta */
+            margin: 10px 0 20px 0;
+            font-size: 0.9em;
+        }
+        .observacao-simples strong {
+            color: var(--cor-texto-claro); /* Destaca a palavra-chave */
+        }
+
+
+        /* Área e Botão Copiar */
+        .copia-area {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        #copia-e-cola {
+            width: 100%;
+            height: 90px;
+            padding: 15px;
+            border: 2px dashed var(--cor-destaque);
+            background-color: #3a3a3a;
+            color: var(--cor-texto-claro);
+            font-size: 0.95em;
+            resize: none;
+            border-radius: 8px;
+            cursor: default;
+        }
+        #btn-copiar {
+            width: 100%;
+            padding: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            background-color: var(--cor-copiar);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        #btn-copiar:hover {
+            background-color: var(--cor-copiar-hover);
+        }
+        
+        /* --- MEDIA QUERIES PARA RESPONSIVIDADE (CELULAR) --- */
+        @media (max-width: 500px) {
+            body {
+                align-items: flex-start;
+                background-attachment: scroll;
+            }
+            .container {
+                width: 95%;
+                margin-top: 20px;
+                padding: 20px 15px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .input-group {
+                flex-direction: column; 
+                align-items: flex-start;
+                font-size: 1em;
+            }
+            .input-group label {
+                margin-bottom: 5px;
+            }
+            #valor_input {
+                width: 100%; 
+                margin-left: 0;
+                box-sizing: border-box; 
+            }
+            
+            #qrcode-img {
+                max-width: 150px; 
+            }
+
+            .btn-principal, #btn-copiar {
+                padding: 12px;
+                font-size: 1.05em;
+            }
+            .observacao-simples {
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sua Assinatura PIX 🎬</h1>
+        
+        <div class="input-group">
+            <label for="valor_input">Valor da Assinatura (R$):</label>
+            <input type="number" id="valor_input" value="49.90" min="0.50" step="0.01">
+        </div>
+
+        <button class="btn-principal" onclick="chamarGeracaoPix()">Pagar com PIX Agora</button>
+
+        <div id="resultado" style="display: none;">
+            <h2>Pagamento PIX Gerado! 🎉</h2>
+            
+            <p class="observacao-simples">
+                Lembre-se: Para liberação imediata, por favor, **envie o comprovante** de pagamento PIX.
+            </p>
+            
+            <p>Escaneie o QR Code abaixo:</p>
+            
+            <img id="qrcode-img" src="" alt="QR Code PIX">
+            
+            <p>Ou use o código Copia e Cola:</p>
+            
+            <div class="copia-area">
+                <textarea id="copia-e-cola" rows="4" readonly></textarea>
+                <button id="btn-copiar" onclick="copiarPix()">COPIAR CÓDIGO PIX</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- FUNÇÃO PARA PEGAR O VALOR DA URL ---
+        function preencherValorDaURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let valorURL = urlParams.get('valor');
+
+            const valorInput = document.getElementById('valor_input');
+
+            if (valorURL) {
+                valorURL = valorURL.replace(',', '.');
+                const valorFormatado = parseFloat(valorURL);
+                
+                if (!isNaN(valorFormatado) && valorFormatado > 0.50) {
+                    valorInput.value = valorFormatado.toFixed(2);
+                } else {
+                    console.warn("Valor na URL inválido. Usando valor padrão.");
+                }
+            }
+        }
+
+        // --- FUNÇÃO DE GERAÇÃO DO PIX REAL ---
+        function chamarGeracaoPix() {
+            const valorInput = document.getElementById('valor_input');
+            const valorEmReais = valorInput.value;
+            const valorFormatado = parseFloat(valorEmReais);
+            
+            if (isNaN(valorFormatado) || valorFormatado <= 0.50) {
+                alert("Por favor, insira um valor válido para a assinatura (mínimo R$ 0,50).");
+                valorInput.focus();
+                return;
+            }
+            
+            const valorEmCentavos = Math.round(valorFormatado * 100);
+
+            // ⚠️ 1. SUBSTITUA ESTA URL PELA URL REAL DO SEU SERVIDOR NO RAILWAY ⚠️
+            // Exemplo da URL do Railway: 'https://seu-dominio-gerado.up.railway.app/gerar-pix'
+            const serverUrl = 'http://127.0.0.1:5000/gerar-pix'; 
+
+            fetch(serverUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    valor_em_centavos: valorEmCentavos
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao se comunicar com o servidor. Verifique se o Railway está rodando. Status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 2. O Front-end recebe os dados reais (qrcode_url e pix_code)
+                if (data.qrcode_url && data.pix_code) {
+                    document.getElementById('qrcode-img').src = data.qrcode_url;
+                    document.getElementById('copia-e-cola').value = data.pix_code;
+                    document.getElementById('resultado').style.display = 'block';
+                } else {
+                    alert("Erro ao gerar PIX: Dados incompletos da API. Verifique o Back-end.");
+                }
+            })
+            .catch(error => {
+                console.error('Erro de rede ou servidor:', error);
+                alert('Erro de conexão ao tentar gerar o PIX. Verifique a URL do servidor.');
+            });
+        }
+
+        // --- FUNÇÕES DE CÓPIA ---
+        function copiarPix() {
+            const textarea = document.getElementById('copia-e-cola');
+            textarea.select();
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(textarea.value)
+                    .then(() => {
+                        darFeedbackCopia(true);
+                    })
+                    .catch(err => {
+                        tentaCopiarMetodoAntigo(textarea);
+                    });
+            } else {
+                tentaCopiarMetodoAntigo(textarea);
+            }
+        }
+
+        function tentaCopiarMetodoAntigo(textarea) {
+            try {
+                const sucesso = document.execCommand('copy');
+                darFeedbackCopia(sucesso);
+            } catch (err) {
+                darFeedbackCopia(false);
+                alert("Erro ao copiar. O navegador não permitiu. Tente selecionar o texto e usar Ctrl+C.");
+            }
+        }
+
+        function darFeedbackCopia(sucesso) {
+            const botao = document.getElementById('btn-copiar');
+            if (sucesso) {
+                botao.textContent = 'COPIADO! ✅';
+                setTimeout(() => {
+                    botao.textContent = 'COPIAR CÓDIGO PIX';
+                }, 2000);
+            } else {
+                botao.textContent = 'ERRO! Tente Ctrl+C';
+                setTimeout(() => {
+                    botao.textContent = 'COPIAR CÓDIGO PIX';
+                }, 3000);
+            }
+        }
+        
+        // Dispara a leitura da URL e preenche o input assim que a página é carregada
+        window.onload = preencherValorDaURL;
+    </script>
+</body>
+</html>
