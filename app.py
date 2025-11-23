@@ -1,22 +1,24 @@
 from flask import Flask, request, jsonify
 import requests
 import os
-from flask_cors import CORS # NOVIDADE: Importa a biblioteca CORS
+from flask_cors import CORS # Importa a biblioteca CORS
 
 # --- Configuração de Variável de Ambiente ---
-# A chave é lida de forma segura do Render, onde você configurou PUSHPAY_API_KEY.
+# A chave é lida de forma segura da variável de ambiente no Render.
 YOUR_PUSHPAY_API_KEY = os.environ.get("PUSHPAY_API_KEY") 
 
 # --- Configuração do Flask ---
 app = Flask(__name__)
-CORS(app) # NOVIDADE: Habilita o CORS para permitir requisições de outras origens (seu arquivo HTML local)
+CORS(app) # Habilita o CORS para permitir requisições de outras origens
 
 # --- Rota da API ---
 @app.route('/gerar-pix', methods=['POST'])
 def gerar_pix():
-    # 1. Verifica se a chave de API foi carregada
+    # 1. Verifica se a chave de API foi carregada corretamente
     if not YOUR_PUSHPAY_API_KEY:
-        return jsonify({"message": "Erro: Chave de API da PushinPay não configurada no ambiente."}), 400
+        # Erro de configuração: A variável de ambiente não foi lida
+        print("ERRO: Chave PUSHPAY_API_KEY não carregada.")
+        return jsonify({"message": "Erro de configuração: Chave de API não encontrada no servidor. (500)"}), 500
 
     try:
         # 2. Obtém o valor em centavos do JSON do Front-end
@@ -24,13 +26,12 @@ def gerar_pix():
         valor_em_centavos = data.get('valor_em_centavos')
 
         if not valor_em_centavos or not isinstance(valor_em_centavos, int) or valor_em_centavos <= 0:
-            return jsonify({"message": "Valor em centavos inválido."}), 400
+            return jsonify({"message": "Valor em centavos inválido na requisição."}), 400
 
         # 3. Prepara o payload para a API da PushinPay
         payload = {
             "amount": valor_em_centavos,
             "description": "Pagamento de Assinatura Streaming",
-            # Outros parâmetros como CPF/CNPJ, etc., podem ser adicionados aqui se necessário.
         }
 
         # 4. Envia a requisição para a PushinPay
@@ -39,25 +40,25 @@ def gerar_pix():
             "Content-Type": "application/json"
         }
         
-        # URL da API de geração de PIX da PushinPay (confirme esta URL com a documentação)
         pushpay_api_url = "https://api.pushinpay.com/v1/pix/qrcode" 
         
         response = requests.post(pushpay_api_url, headers=headers, json=payload)
-        response.raise_for_status() # Lança um erro para status 4xx/5xx
+        
+        # 5. Captura erros da API PushinPay (como 401, 400, etc.)
+        response.raise_for_status() 
 
         pushpay_data = response.json()
         
-        # 5. Extrai os dados essenciais
+        # 6. Extrai os dados e retorna ao Front-end
         pix_code = pushpay_data.get('pix_code')
         qrcode_url = pushpay_data.get('qrcode_url')
 
         if not pix_code or not qrcode_url:
              return jsonify({
-                "message": "Resposta da PushinPay incompleta.",
+                "message": "Resposta da PushinPay incompleta. Dados PIX faltando.",
                 "details": pushpay_data
             }), 500
 
-        # 6. Retorna os dados para o Front-end
         return jsonify({
             "qrcode_url": qrcode_url,
             "pix_code": pix_code,
@@ -65,20 +66,22 @@ def gerar_pix():
         })
 
     except requests.exceptions.HTTPError as err:
-        # Erros da API (ex: chave inválida, dados mal formatados)
-        try:
-            error_details = err.response.json()
-            error_message = error_details.get('message', 'Erro desconhecido na API da PushinPay.')
-        except:
-            error_message = f"Erro HTTP: {err.response.status_code} - {err.response.text}"
-            
-        return jsonify({"message": "Erro ao gerar PIX na PushinPay.", "details": error_message}), err.response.status_code
+        # Este bloco lida com erros da PushinPay (ex: 401 Unauthorized por chave errada)
+        error_status = err.response.status_code
+        error_text = err.response.text
+        
+        print(f"ERRO API PUSHPAY: Status {error_status}, Resposta: {error_text}")
+        
+        return jsonify({
+            "message": f"Falha na API da PushinPay (Erro {error_status}). A chave de API pode estar incorreta ou o valor de PIX inválido.",
+            "details": error_text
+        }), error_status
         
     except Exception as e:
-        # Outros erros de servidor
-        return jsonify({"message": "Erro interno do servidor.", "details": str(e)}), 500
+        # Este bloco captura qualquer outro erro interno (500)
+        print(f"ERRO INTERNO GRAVE: {str(e)}")
+        return jsonify({"message": "Erro interno do servidor ao processar a requisição.", "details": str(e)}), 500
 
 # --- Ponto de Entrada Principal ---
 if __name__ == '__main__':
-    # Esta parte só roda localmente
     app.run(debug=True)
