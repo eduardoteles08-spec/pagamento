@@ -1,3 +1,16 @@
+# app.py (Código Atualizado para segurança)
+from flask import Flask, request, jsonify
+import requests
+import os # Importa a biblioteca para ler variáveis de ambiente
+
+# A CHAVE AGORA É LIDA DA VARIÁVEL DE AMBIENTE DO RENDER
+# O Render garante que 'os.environ.get("PUSHPAY_API_KEY")' buscará o valor secreto.
+YOUR_PUSHPAY_API_KEY = os.environ.get("PUSHPAY_API_KEY") 
+
+# Inicializa o Flask
+app = Flask(__name__)
+# ... restante do código ...
+
 # app.py (Seu Servidor Back-end em Python/Flask)
 from flask import Flask, request, jsonify
 import requests
