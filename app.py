@@ -4,7 +4,7 @@ import os
 from flask_cors import CORS 
 
 # --- Configuração de Variável de Ambiente ---
-YOUR_PUSHPAY_API_KEY = os.environ.get("PUSHPAY_API_KEY") 
+YOUR_PUSHPAY_API_KEY = os.environ.get("55092|jUVId6caFwNbWFn5SVQvtdZ9iClhfpEJp4nZvpkP6108b4e4") 
 
 # --- Configuração do Flask ---
 app = Flask(__name__)
