@@ -1,85 +1,84 @@
-# app.py (Código Atualizado para segurança)
 from flask import Flask, request, jsonify
 import requests
-import os # Importa a biblioteca para ler variáveis de ambiente
+import os
+from flask_cors import CORS # NOVIDADE: Importa a biblioteca CORS
 
-# A CHAVE AGORA É LIDA DA VARIÁVEL DE AMBIENTE DO RENDER
-# O Render garante que 'os.environ.get("PUSHPAY_API_KEY")' buscará o valor secreto.
+# --- Configuração de Variável de Ambiente ---
+# A chave é lida de forma segura do Render, onde você configurou PUSHPAY_API_KEY.
 YOUR_PUSHPAY_API_KEY = os.environ.get("PUSHPAY_API_KEY") 
 
-# Inicializa o Flask
+# --- Configuração do Flask ---
 app = Flask(__name__)
-# ... restante do código ...
+CORS(app) # NOVIDADE: Habilita o CORS para permitir requisições de outras origens (seu arquivo HTML local)
 
-# app.py (Seu Servidor Back-end em Python/Flask)
-from flask import Flask, request, jsonify
-import requests
-
-# ⚠️ 1. ONDE COLOCAR SUA CHAVE DE API (SECRETA) ⚠️
-# TROQUE A CHAVE ABAIXO PELA SUA CHAVE REAL DA PUSHPAY
-YOUR_PUSHPAY_API_KEY = "SUA_CHAVE_SECRETA_DA_PUSHPAY_AQUI"
-
-# Inicializa o Flask
-app = Flask(__name__)
-
-# Rota que receberá a requisição do seu JavaScript (Front-end)
+# --- Rota da API ---
 @app.route('/gerar-pix', methods=['POST'])
 def gerar_pix():
-    # Verifica se a chave foi configurada
-    if YOUR_PUSHPAY_API_KEY == "SUA_CHAVE_SECRETA_DA_PUSHPAY_AQUI":
-        return jsonify({"message": "Erro: A chave de API da PushinPay não foi configurada."}), 500
-        
-    try:
-        data = request.get_json()
-        # O valor é esperado em centavos, conforme enviado pelo Front-end
-        valor_em_centavos = data.get('valor_em_centavos')
-        
-        if valor_em_centavos is None or valor_em_centavos <= 0:
-            return jsonify({"message": "Valor inválido recebido."}), 400
+    # 1. Verifica se a chave de API foi carregada
+    if not YOUR_PUSHPAY_API_KEY:
+        return jsonify({"message": "Erro: Chave de API da PushinPay não configurada no ambiente."}), 400
 
-        # --- PREPARAÇÃO DA CHAMADA SEGURA PARA A API DA PUSHPAY ---
-        
-        # URL do endpoint de geração de PIX da PushinPay (VERIFIQUE COM A DOCUMENTAÇÃO DELES)
-        url = "https://api.pushinpay.com/v1/pix/gerar" 
-        
+    try:
+        # 2. Obtém o valor em centavos do JSON do Front-end
+        data = request.get_json()
+        valor_em_centavos = data.get('valor_em_centavos')
+
+        if not valor_em_centavos or not isinstance(valor_em_centavos, int) or valor_em_centavos <= 0:
+            return jsonify({"message": "Valor em centavos inválido."}), 400
+
+        # 3. Prepara o payload para a API da PushinPay
+        payload = {
+            "amount": valor_em_centavos,
+            "description": "Pagamento de Assinatura Streaming",
+            # Outros parâmetros como CPF/CNPJ, etc., podem ser adicionados aqui se necessário.
+        }
+
+        # 4. Envia a requisição para a PushinPay
         headers = {
-            # Sua chave fica segura aqui, invisível ao navegador do cliente
             "Authorization": f"Bearer {YOUR_PUSHPAY_API_KEY}", 
             "Content-Type": "application/json"
         }
         
-        payload = {
-            "amount": valor_em_centavos, 
-            "description": "Pagamento de Assinatura",
-            # Adicione outros campos, como client_id, se a PushinPay exigir
-        }
+        # URL da API de geração de PIX da PushinPay (confirme esta URL com a documentação)
+        pushpay_api_url = "https://api.pushinpay.com/v1/pix/qrcode" 
         
-        # Faz a chamada POST
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(pushpay_api_url, headers=headers, json=payload)
+        response.raise_for_status() # Lança um erro para status 4xx/5xx
+
+        pushpay_data = response.json()
         
-        # --- TRATAMENTO DA RESPOSTA ---
-        if response.status_code in [200, 201]:
-            pix_data = response.json()
+        # 5. Extrai os dados essenciais
+        pix_code = pushpay_data.get('pix_code')
+        qrcode_url = pushpay_data.get('qrcode_url')
+
+        if not pix_code or not qrcode_url:
+             return jsonify({
+                "message": "Resposta da PushinPay incompleta.",
+                "details": pushpay_data
+            }), 500
+
+        # 6. Retorna os dados para o Front-end
+        return jsonify({
+            "qrcode_url": qrcode_url,
+            "pix_code": pix_code,
+            "message": "PIX gerado com sucesso."
+        })
+
+    except requests.exceptions.HTTPError as err:
+        # Erros da API (ex: chave inválida, dados mal formatados)
+        try:
+            error_details = err.response.json()
+            error_message = error_details.get('message', 'Erro desconhecido na API da PushinPay.')
+        except:
+            error_message = f"Erro HTTP: {err.response.status_code} - {err.response.text}"
             
-            # Mapeia a resposta real da PushinPay para o Front-end
-            resultado = {
-                # O nome dos campos DEVE coincidir com o que a PushinPay retorna
-                "qrcode_url": pix_data.get('qrcode_image_url'), 
-                "pix_code": pix_data.get('pix_br_code'),         
-                "success": True
-            }
-            return jsonify(resultado), 200
-        else:
-            print(f"Erro na API PushinPay: {response.text}")
-            return jsonify({
-                "message": "Erro ao processar o PIX na PushinPay.",
-                "details": response.json() 
-            }), response.status_code
-
+        return jsonify({"message": "Erro ao gerar PIX na PushinPay.", "details": error_message}), err.response.status_code
+        
     except Exception as e:
-        print(f"Erro interno: {e}")
-        return jsonify({"message": f"Erro interno do servidor: {str(e)}"}), 500
+        # Outros erros de servidor
+        return jsonify({"message": "Erro interno do servidor.", "details": str(e)}), 500
 
+# --- Ponto de Entrada Principal ---
 if __name__ == '__main__':
-    # Para testes locais: http://127.0.0.1:5000/
-    app.run(debug=True, port=5000)
+    # Esta parte só roda localmente
+    app.run(debug=True)
